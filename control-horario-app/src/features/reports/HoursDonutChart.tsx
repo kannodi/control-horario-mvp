@@ -34,10 +34,10 @@ export function HoursDonutChart({ workedHours, breakHours, targetHours }: HoursD
     const mainPercentage = getPercentage(workedHours);
 
     return (
-        <div className="flex flex-col h-full">
-            {/* Chart container */}
-            <div className="relative flex-1 min-h-[200px]">
-                {/* Center label */}
+        <div className="flex flex-col h-[300px] w-full min-h-[300px]">
+             {/* Chart container */}
+             <div className="relative flex-1 min-h-[250px]">
+                 {/* Center label */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="text-center">
                         <p className="text-3xl font-bold text-blue-600">{mainPercentage}%</p>

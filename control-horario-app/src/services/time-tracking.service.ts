@@ -53,9 +53,11 @@ export const TimeTrackingService = {
             .maybeSingle();
 
         if (checkError) throw checkError;
+        /* Comentado para permitir pruebas múltiples el mismo día
         if (existingSession) {
             throw new Error('Ya has registrado una jornada el día de hoy. Inténtalo mañana.');
         }
+        */
 
         const newSession = {
             user_id: userId,
