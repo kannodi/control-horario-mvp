@@ -1,20 +1,35 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Clock } from 'lucide-react';
+import { Clock, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [email, setEmail] = useState('alex@techsolutions.com');
+    const [password, setPassword] = useState('password');
+    const [error, setError] = useState<string | null>(null);
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        // Simulate login delay
-        setTimeout(() => {
+        setError(null);
+
+        try {
+            const { error: authError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (authError) throw authError;
+
             router.push('/dashboard');
-        }, 800);
+        } catch (err: any) {
+            setError(err.message || 'Error al iniciar sesión');
+            setLoading(false);
+        }
     };
 
     return (
@@ -28,12 +43,20 @@ export default function LoginPage() {
                     <p className="text-slate-500 mt-2">Inicia sesión para registrar tu jornada</p>
                 </div>
 
+                {error && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl flex items-center gap-3 text-sm animate-in fade-in slide-in-from-top-1">
+                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                        <p>{error}</p>
+                    </div>
+                )}
+
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
                         <input
                             type="email"
-                            defaultValue="alex@techsolutions.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                             className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
                     </div>
@@ -41,7 +64,8 @@ export default function LoginPage() {
                         <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
                         <input
                             type="password"
-                            defaultValue="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
                             className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
                     </div>

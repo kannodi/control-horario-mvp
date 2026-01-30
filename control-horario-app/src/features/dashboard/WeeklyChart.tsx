@@ -2,17 +2,16 @@
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-const data = [
-    { name: 'Lun', hours: 8.5 },
-    { name: 'Mar', hours: 7.2 },
-    { name: 'Mie', hours: 9.0 },
-    { name: 'Jue', hours: 8.0 },
-    { name: 'Vie', hours: 6.5 },
-    { name: 'Sab', hours: 0 },
-    { name: 'Dom', hours: 0 },
-];
+interface ChartData {
+    name: string;
+    hours: number;
+}
 
-export function WeeklyChart() {
+interface WeeklyChartProps {
+    data: ChartData[];
+}
+
+export function WeeklyChart({ data }: WeeklyChartProps) {
     return (
         <div className="h-full w-full min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">

@@ -5,6 +5,7 @@ import { Play, Pause, Square, Clock } from 'lucide-react';
 import { clsx } from 'clsx';
 import { WorkSession } from '@/types';
 import { TimeTrackingService } from '@/services/time-tracking.service';
+import { supabase } from '@/lib/supabase';
 
 interface TimerProps {
     initialSession: WorkSession | null;
@@ -70,13 +71,18 @@ export function Timer({ initialSession, onSessionChange }: TimerProps) {
     const handleStart = async () => {
         try {
             setLoading(true);
-            const newSession = await TimeTrackingService.startSession('user_123'); // Mock user
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Debes iniciar sesión para comenzar una jornada.');
+                return;
+            }
+            const newSession = await TimeTrackingService.startSession(user.id);
             setSession(newSession);
             setElapsedSeconds(0);
             onSessionChange(newSession);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert('Error al iniciar jornada');
+            alert(error.message || 'Error al iniciar jornada');
         } finally {
             setLoading(false);
         }

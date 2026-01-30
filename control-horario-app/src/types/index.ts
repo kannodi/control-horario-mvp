@@ -33,6 +33,7 @@ export interface WorkSession {
     check_in: string; // ISO string
     check_out?: string; // ISO string
     total_minutes: number;
+    accumulated_seconds: number;
     status: SessionStatus;
     breaks: Break[];
 }
