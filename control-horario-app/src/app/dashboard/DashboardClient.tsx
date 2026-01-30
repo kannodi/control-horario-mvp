@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState, useMemo } from 'react';
 import { Timer } from '@/features/timer/Timer';
 import { DashboardStats } from '@/features/dashboard/DashboardStats';
