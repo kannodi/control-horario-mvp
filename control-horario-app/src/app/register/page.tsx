@@ -1,19 +1,20 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Clock } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 
-export default function LoginPage() {
+export default function RegisterPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleRegister = (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        // Simulate login delay
+        // Simulate registration delay
         setTimeout(() => {
+            // In a real app, this would register the user
             router.push('/dashboard');
         }, 800);
     };
@@ -23,18 +24,28 @@ export default function LoginPage() {
             <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl border border-slate-100">
                 <div className="flex flex-col items-center mb-8">
                     <div className="p-3 bg-blue-100 rounded-xl mb-4 text-blue-600">
-                        <Clock className="w-10 h-10" />
+                        <UserPlus className="w-10 h-10" />
                     </div>
-                    <h1 className="text-2xl font-bold text-slate-900">Bienvenido a TimeMaster</h1>
-                    <p className="text-slate-500 mt-2">Inicia sesión para registrar tu jornada</p>
+                    <h1 className="text-2xl font-bold text-slate-900">Crear Cuenta</h1>
+                    <p className="text-slate-500 mt-2">Únete a TimeMaster hoy mismo</p>
                 </div>
 
-                <form onSubmit={handleLogin} className="space-y-4">
+                <form onSubmit={handleRegister} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Nombre Completo</label>
+                        <input
+                            type="text"
+                            placeholder="Juan Pérez"
+                            required
+                            className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        />
+                    </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
                         <input
                             type="email"
-                            defaultValue="alex@techsolutions.com"
+                            placeholder="juan@ejemplo.com"
+                            required
                             className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
                     </div>
@@ -42,7 +53,8 @@ export default function LoginPage() {
                         <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
                         <input
                             type="password"
-                            defaultValue="password"
+                            placeholder="••••••••"
+                            required
                             className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
                     </div>
@@ -55,13 +67,13 @@ export default function LoginPage() {
                         {loading ? (
                             <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         ) : (
-                            'Ingresar'
+                            'Registrarse'
                         )}
                     </button>
                 </form>
 
                 <div className="mt-6 text-center text-sm text-slate-400">
-                    ¿No tienes cuenta? <Link href="/register" className="text-blue-600 font-medium cursor-pointer hover:underline">Regístrate gratis</Link>
+                    ¿Ya tienes cuenta? <Link href="/login" className="text-blue-600 font-medium cursor-pointer hover:underline">Inicia sesión</Link>
                 </div>
             </div>
         </div>
