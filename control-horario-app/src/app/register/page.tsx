@@ -28,7 +28,6 @@ export default function RegisterPage() {
             if (authError) throw authError;
 
             if (data.user) {
-                // Crear perfil en la base de datos
                 const { error: profileError } = await supabase
                     .from('profiles')
                     .insert({
@@ -40,7 +39,6 @@ export default function RegisterPage() {
                 if (profileError) throw profileError;
             }
 
-            // Redirigir al login con mensaje
             router.push('/login?message=Cuenta creada. Revisa tu email para confirmar.');
         } catch (err: any) {
             setError(err.message || 'Error al crear la cuenta');

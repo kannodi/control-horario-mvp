@@ -9,8 +9,8 @@ import { supabase } from '@/lib/supabase';
 export default function LoginPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [email, setEmail] = useState('alex@techsolutions.com');
-    const [password, setPassword] = useState('password');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -56,6 +56,8 @@ export default function LoginPage() {
                         <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
                         <input
                             type="email"
+                            placeholder="tu@email.com"
+                            required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
@@ -65,6 +67,8 @@ export default function LoginPage() {
                         <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
                         <input
                             type="password"
+                            placeholder="••••••••"
+                            required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
