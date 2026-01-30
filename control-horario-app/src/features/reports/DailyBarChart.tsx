@@ -15,7 +15,7 @@ interface DailyBarChartProps {
 
 export function DailyBarChart({ data, targetHours = 8 }: DailyBarChartProps) {
     return (
-        <div className="h-full w-full">
+        <div className="h-[300px] w-full min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
                     <XAxis

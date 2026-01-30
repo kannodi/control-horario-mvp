@@ -13,7 +13,7 @@ interface WeeklyChartProps {
 
 export function WeeklyChart({ data }: WeeklyChartProps) {
     return (
-        <div className="h-full w-full min-h-[300px]">
+        <div className="h-[300px] w-full min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data}>
                     <XAxis
