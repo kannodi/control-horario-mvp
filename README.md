@@ -1,1 +1,1 @@
-# Mini-Proyecto-Colaborativo
+# Proyecto Control Horario - Build Trigger
