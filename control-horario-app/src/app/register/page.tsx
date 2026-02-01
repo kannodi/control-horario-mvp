@@ -69,7 +69,7 @@ export default function RegisterPage() {
                             required
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
-                            className="w-full px-4 py-3 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all !dark:bg-slate-800 dark:border-slate-700 !dark:text-white dark:placeholder-slate-400"
+                            className="w-full px-4 py-3 rounded-lg border border-slate-200 !bg-white !text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:border-slate-700 dark:placeholder-slate-400"
                         />
                     </div>
                     <div>
@@ -80,7 +80,7 @@ export default function RegisterPage() {
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-3 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all !dark:bg-slate-800 dark:border-slate-700 !dark:text-white dark:placeholder-slate-400"
+                            className="w-full px-4 py-3 rounded-lg border border-slate-200 !bg-white !text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:border-slate-700 dark:placeholder-slate-400"
                         />
                     </div>
                     <div>
@@ -91,7 +91,7 @@ export default function RegisterPage() {
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-3 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all !dark:bg-slate-800 dark:border-slate-700 !dark:text-white dark:placeholder-slate-400"
+                            className="w-full px-4 py-3 rounded-lg border border-slate-200 !bg-white !text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:border-slate-700 dark:placeholder-slate-400"
                         />
                     </div>
 
