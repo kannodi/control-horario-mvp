@@ -4,9 +4,10 @@ import { useRouter } from 'next/navigation';
 import { UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 
 export default function RegisterPage() {
+    const supabase = createClient();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
@@ -20,24 +21,21 @@ export default function RegisterPage() {
         setError(null);
 
         try {
+            // Pass full_name in metadata - the DB trigger will use it
             const { data, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
+                options: {
+                    data: {
+                        full_name: fullName
+                    }
+                }
             });
 
             if (authError) throw authError;
 
-            if (data.user) {
-                const { error: profileError } = await supabase
-                    .from('profiles')
-                    .insert({
-                        id: data.user.id,
-                        full_name: fullName,
-                        role: 'user',
-                    });
-
-                if (profileError) throw profileError;
-            }
+            // Profile is created automatically by the DB trigger (handle_new_user)
+            // No need to manually insert into profiles table
 
             router.push('/login?message=Cuenta creada. Revisa tu email para confirmar.');
         } catch (err: any) {

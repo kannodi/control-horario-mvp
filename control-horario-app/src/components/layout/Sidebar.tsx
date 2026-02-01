@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Clock, BarChart3, Users, Settings, LogOut, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -14,9 +15,11 @@ const navigation = [
 
 export function Sidebar() {
     const pathname = usePathname();
-    const router = useRouter(); // Import useRouter
+    const router = useRouter();
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        const supabase = createClient();
+        await supabase.auth.signOut();
         router.push('/login');
     };
 

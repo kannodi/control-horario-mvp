@@ -5,7 +5,7 @@ import { Play, Pause, Square, Clock } from 'lucide-react';
 import { clsx } from 'clsx';
 import { WorkSession } from '@/types';
 import { TimeTrackingService } from '@/services/time-tracking.service';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 
 interface TimerProps {
     initialSession: WorkSession | null;
@@ -13,6 +13,7 @@ interface TimerProps {
 }
 
 export function Timer({ initialSession, onSessionChange }: TimerProps) {
+    const supabase = createClient();
     const [session, setSession] = useState<WorkSession | null>(initialSession);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -81,8 +82,10 @@ export function Timer({ initialSession, onSessionChange }: TimerProps) {
             setElapsedSeconds(0);
             onSessionChange(newSession);
         } catch (error: any) {
-            console.error(error);
-            alert(error.message || 'Error al iniciar jornada');
+            console.error('Error detail:', error);
+            const errorMsg = error.message || 'Error al iniciar jornada';
+            const errorDetails = error.details || error.hint || '';
+            alert(`Error: ${errorMsg}\n${errorDetails}`);
         } finally {
             setLoading(false);
         }
@@ -134,11 +137,11 @@ export function Timer({ initialSession, onSessionChange }: TimerProps) {
     return (
         <div className="w-full">
             <div className="flex flex-col items-center justify-center py-8">
-                <div className="text-6xl font-black text-slate-800 tracking-tighter tabular-nums mb-8 flex items-baseline gap-1">
-                    <span>{time.h}</span>
-                    <span className="text-slate-300 mx-1">:</span>
-                    <span>{time.m}</span>
-                    <span className="text-slate-300 mx-1">:</span>
+                <div className="text-6xl font-black tracking-tighter tabular-nums mb-8 flex items-baseline gap-1">
+                    <span className={parseInt(time.h) > 0 ? "text-blue-600" : "text-slate-400 dark:text-slate-500"}>{time.h}</span>
+                    <span className="text-slate-300 dark:text-slate-600 mx-1">:</span>
+                    <span className={parseInt(time.m) > 0 ? "text-blue-600" : "text-slate-400 dark:text-slate-500"}>{time.m}</span>
+                    <span className="text-slate-300 dark:text-slate-600 mx-1">:</span>
                     <span className="text-blue-600 animate-pulse">{time.s}</span>
                 </div>
 

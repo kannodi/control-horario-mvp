@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Clock, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -12,6 +12,8 @@ export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
+
+    const supabase = createClient();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -27,6 +29,7 @@ export default function LoginPage() {
             if (authError) throw authError;
 
             router.push('/dashboard');
+            router.refresh(); // Refrescar para que el middleware actualice cookies
         } catch (err: any) {
             setError(err.message || 'Error al iniciar sesión');
             setLoading(false);

@@ -1,8 +1,14 @@
 import { WorkSession, SessionStatus, Break } from '@/types';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
+
+// Helper to get a fresh client with current auth context
+function getSupabase() {
+    return createClient();
+}
 
 export const TimeTrackingService = {
     async getCurrentSession(): Promise<WorkSession | null> {
+        const supabase = getSupabase();
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return null;
@@ -42,50 +48,100 @@ export const TimeTrackingService = {
     },
 
     async startSession(userId: string): Promise<WorkSession> {
+        const supabase = getSupabase();
         const todayStr = new Date().toISOString().split('T')[0];
 
-        // Check if there's already a session for today
-        const { data: existingSession, error: checkError } = await supabase
-            .from('work_sessions')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('date', todayStr)
-            .maybeSingle();
+        console.log('🚀 startSession called with userId:', userId);
 
-        if (checkError) throw checkError;
-        /* Comentado para permitir pruebas múltiples el mismo día
-        if (existingSession) {
-            throw new Error('Ya has registrado una jornada el día de hoy. Inténtalo mañana.');
+        try {
+            // 0. First verify we have auth
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            console.log('📍 Auth check - user:', user?.id, 'error:', authError);
+
+            if (authError || !user) {
+                throw new Error('No hay sesión de autenticación activa. Por favor, inicia sesión de nuevo.');
+            }
+
+            // 1. Ensure Profile Exists (Self-Healing)
+            console.log('📍 Checking if profile exists...');
+            const { data: profileData, error: profileCheckError } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('id', userId)
+                .maybeSingle();
+
+            console.log('📍 Profile check result:', { profileData, profileCheckError });
+
+            if (profileCheckError) {
+                console.error('❌ Error checking profile:', JSON.stringify(profileCheckError, null, 2));
+            }
+
+            if (!profileData) {
+                console.log('⚠️ Profile missing for user. Attempting to create one...');
+                const fallbackName = user?.email?.split('@')[0] || 'Usuario Sin Nombre';
+
+                const { error: createProfileError } = await supabase
+                    .from('profiles')
+                    .insert({
+                        id: userId,
+                        full_name: fallbackName,
+                        role: 'user',
+                        company_id: 'comp_default'
+                    });
+
+                if (createProfileError) {
+                    console.error('❌ Failed to auto-create profile:', JSON.stringify(createProfileError, null, 2));
+                    throw new Error(`No se pudo crear el perfil: ${createProfileError.message || createProfileError.code || 'Error RLS'}`);
+                }
+                console.log('✅ Profile auto-created successfully.');
+            }
+
+            // 2. Create Session
+            console.log('📍 Creating work session...');
+            const newSession = {
+                user_id: userId,
+                company_id: 'comp_default',
+                date: todayStr,
+                check_in: new Date().toISOString(),
+                status: 'active',
+                total_minutes: 0,
+                accumulated_seconds: 0,
+            };
+
+            const { data, error } = await supabase
+                .from('work_sessions')
+                .insert(newSession)
+                .select(`
+                    *,
+                    breaks (*)
+                `)
+                .single();
+
+            console.log('📍 Insert result:', { data, error: error ? JSON.stringify(error, null, 2) : null });
+
+            if (error) {
+                console.error('❌ Supabase Error in startSession:', JSON.stringify(error, null, 2));
+                throw new Error(`Error al crear jornada: ${error.message || error.code || 'Error de base de datos'}`);
+            }
+
+            console.log('✅ Session created successfully:', data?.id);
+            return data as WorkSession;
+
+        } catch (err: any) {
+            console.error('🔥 Critical Error in startSession:', err?.message || err);
+            // Re-throw with proper message
+            if (err instanceof Error) {
+                throw err;
+            }
+            throw new Error('Error desconocido al iniciar jornada');
         }
-        */
-
-        const newSession = {
-            user_id: userId,
-            company_id: 'comp_123', // This should come from profile in a real app
-            date: todayStr,
-            check_in: new Date().toISOString(),
-            status: 'active',
-            total_minutes: 0,
-            accumulated_seconds: 0,
-        };
-
-        const { data, error } = await supabase
-            .from('work_sessions')
-            .insert(newSession)
-            .select(`
-                *,
-                breaks (*)
-            `)
-            .single();
-
-        if (error) throw error;
-        return data as WorkSession;
     },
 
     async pauseSession(sessionId: string): Promise<WorkSession> {
+        const supabase = getSupabase();
         const now = new Date();
         const currentSession = await this.getCurrentSession();
-        
+
         if (!currentSession || currentSession.id !== sessionId) {
             throw new Error('Session not found or mismatch');
         }
@@ -125,8 +181,9 @@ export const TimeTrackingService = {
     },
 
     async resumeSession(sessionId: string): Promise<WorkSession> {
+        const supabase = getSupabase();
         const now = new Date().toISOString();
-        
+
         // End the active break
         const { data: activeBreak, error: breakFetchError } = await supabase
             .from('breaks')
@@ -140,10 +197,10 @@ export const TimeTrackingService = {
         if (activeBreak) {
             const startStr = activeBreak.break_start;
             const duration = Math.floor((new Date().getTime() - new Date(startStr).getTime()) / 60000);
-            
+
             await supabase
                 .from('breaks')
-                .update({ 
+                .update({
                     break_end: now,
                     duration_minutes: duration
                 })
@@ -169,9 +226,10 @@ export const TimeTrackingService = {
     },
 
     async stopSession(sessionId: string): Promise<WorkSession> {
+        const supabase = getSupabase();
         const now = new Date();
         const currentSession = await this.getCurrentSession();
-        
+
         if (!currentSession || currentSession.id !== sessionId) {
             throw new Error('Session not found or mismatch');
         }
@@ -207,6 +265,7 @@ export const TimeTrackingService = {
     },
 
     async getHistory(month?: number, year?: number): Promise<WorkSession[]> {
+        const supabase = getSupabase();
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return [];

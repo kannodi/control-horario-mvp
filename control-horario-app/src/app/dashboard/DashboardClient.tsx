@@ -6,13 +6,14 @@ import { DashboardStats } from '@/features/dashboard/DashboardStats';
 import { WeeklyChart } from '@/features/dashboard/WeeklyChart';
 import { WorkSession } from '@/types';
 import { TimeTrackingService } from '@/services/time-tracking.service';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 
 interface UserProfile {
     full_name: string;
 }
 
 export default function DashboardClient() {
+    const supabase = createClient();
     const [currentSession, setCurrentSession] = useState<WorkSession | null>(null);
     const [todayStats, setTodayStats] = useState({ minutes: 0, breaks: 0 });
     const [loading, setLoading] = useState(true);
@@ -34,11 +35,11 @@ export default function DashboardClient() {
 
             const session = await TimeTrackingService.getCurrentSession();
             setCurrentSession(session);
-            
+
             const now = new Date();
             const historyData = await TimeTrackingService.getHistory(now.getMonth(), now.getFullYear());
             setHistory(historyData);
-            
+
             const todayStr = now.toISOString().split('T')[0];
             const todaySessions = historyData.filter(s => s.date === todayStr && s.status === 'completed');
 
@@ -67,23 +68,23 @@ export default function DashboardClient() {
         const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
         const now = new Date();
         const results = [];
-        
+
         // Get last 7 days including today
         for (let i = 6; i >= 0; i--) {
             const d = new Date(now);
             d.setDate(now.getDate() - i);
             const dateStr = d.toISOString().split('T')[0];
             const dayName = dayNames[d.getDay()];
-            
+
             const daySessions = history.filter(s => s.date === dateStr);
             const totalHours = daySessions.reduce((acc, s) => acc + (s.total_minutes / 60), 0);
-            
+
             results.push({
                 name: dayName,
                 hours: parseFloat(totalHours.toFixed(1))
             });
         }
-        
+
         return results;
     }, [history]);
 
