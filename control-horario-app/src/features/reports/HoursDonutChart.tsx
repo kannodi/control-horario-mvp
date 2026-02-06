@@ -56,7 +56,6 @@ export function HoursDonutChart({ workedHours, breakHours, targetHours }: HoursD
                             cy="50%"
                             innerRadius="55%"
                             outerRadius="80%"
-                            paddingAngle={3}
                             dataKey="value"
                             stroke="none"
                         >

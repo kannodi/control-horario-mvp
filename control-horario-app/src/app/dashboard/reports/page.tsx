@@ -30,8 +30,8 @@ export default function ReportsPage() {
             setLoading(true);
             try {
                 const data = await TimeTrackingService.getHistory(selectedMonth, selectedYear);
-                // Filter only completed sessions
-                const completedSessions = data.filter(s => s.status === 'completed');
+                // Filter only completed sessions with at least 1 minute of work
+                const completedSessions = data.filter(s => s.status === 'completed' && s.total_minutes >= 1);
                 setSessions(completedSessions);
             } catch (err) {
                 console.error('Error fetching reports data:', err);
@@ -47,7 +47,7 @@ export default function ReportsPage() {
         const totalMinutes = sessions.reduce((acc, s) => acc + s.total_minutes, 0);
         const totalHours = totalMinutes / 60;
         const totalBreaks = sessions.reduce((acc, s) => acc + s.breaks.length, 0);
-        const workDays = sessions.length;
+        const workDays = new Set(sessions.map(s => s.date)).size;
         const averageHours = workDays > 0 ? totalHours / workDays : 0;
 
         return { totalHours, averageHours, totalBreaks, workDays };
