@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Play, Pause, Square, LogOut, Clock, Calendar } from 'lucide-react';
@@ -22,7 +22,7 @@ export default function DashboardClient() {
 
     const [loading, setLoading] = useState(true);
     const [session, setSession] = useState<SessionData | null>(null);
-    const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
+    const [profile, setProfile] = useState<{ full_name: string | null; company_id: string | null } | null>(null);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
     // Fetch initial data
@@ -39,7 +39,7 @@ export default function DashboardClient() {
             // Get profile
             const { data: profileData } = await supabase
                 .from('profiles')
-                .select('full_name')
+                .select('full_name, company_id')
                 .eq('id', user.id)
                 .single();
 
@@ -113,10 +113,12 @@ export default function DashboardClient() {
                 .from('work_sessions')
                 .insert({
                     user_id: user.id,
+                    company_id: profile?.company_id || '', // Required by DB
                     date: new Date().toISOString().split('T')[0],
                     check_in: new Date().toISOString(),
                     status: 'active' as const,
-                    total_minutes: 0
+                    total_minutes: 0,
+                    accumulated_seconds: 0
                 })
                 .select('*, breaks(*)')
                 .single();

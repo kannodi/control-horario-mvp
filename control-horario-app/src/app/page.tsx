@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '../lib/supabaseClient'
+import { createClient } from '@/lib/supabase/client'
 import { Card } from '../components/ui/Card'
 
 export default function Home() {
