@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Play, Pause, Square, LogOut, Clock, Calendar } from 'lucide-react';
+import { Play, Pause, Square, LogOut, Clock, Calendar, RefreshCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { fetchLocationInfo } from '@/services/externalApi';
@@ -23,6 +23,7 @@ interface SessionData {
 export default function DashboardClient() {
     const supabase = createClient();
     const router = useRouter();
+    const isLocationFetching = useRef(false);
 
     const [loading, setLoading] = useState(true);
     const [session, setSession] = useState<SessionData | null>(null);
@@ -77,24 +78,35 @@ export default function DashboardClient() {
         }
     }, [supabase, router]);
 
+    // Fetch location info
+    const getLocation = useCallback(async (force = false) => {
+        if (isLocationFetching.current && !force) return;
+
+        try {
+            isLocationFetching.current = true;
+            setLocationLoading(true);
+            setLocationError(null);
+            const data = await fetchLocationInfo();
+            setLocation(data);
+        } catch (err) {
+            console.error('Location fetch error:', err);
+            const message = err instanceof Error ? err.message : 'Error desconocido al cargar ubicación';
+
+            if (message.includes('429')) {
+                setLocationError('Límite de peticiones alcanzado. Por favor, intenta más tarde.');
+            } else {
+                setLocationError('No se pudo obtener la ubicación. Verifica tu conexión.');
+            }
+        } finally {
+            setLocationLoading(false);
+            isLocationFetching.current = false;
+        }
+    }, []);
+
     useEffect(() => {
         fetchData();
-
-        // Fetch location info
-        const getLocation = async () => {
-            try {
-                setLocationLoading(true);
-                const data = await fetchLocationInfo();
-                setLocation(data);
-            } catch (err) {
-                setLocationError(err instanceof Error ? err.message : 'Error desconocido al cargar ubicación');
-            } finally {
-                setLocationLoading(false);
-            }
-        };
-
         getLocation();
-    }, [fetchData]);
+    }, [fetchData, getLocation]);
 
     // Timer logic
     useEffect(() => {
@@ -399,8 +411,19 @@ export default function DashboardClient() {
                                 <span className="text-sm">Cargando ubicación...</span>
                             </div>
                         ) : locationError ? (
-                            <div className="text-red-500 text-sm py-2 bg-red-50 dark:bg-red-900/20 px-4 rounded-lg flex items-center gap-2">
-                                <span className="flex-1">Error cargando ubicación: {locationError}</span>
+                            <div className="flex flex-col items-center gap-3 py-4">
+                                <div className="text-red-500 text-sm bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-lg flex items-center gap-2">
+                                    <span className="flex-1">{locationError}</span>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => getLocation(true)}
+                                    className="text-xs text-slate-500 hover:text-indigo-500"
+                                >
+                                    <RefreshCcw className="w-3 h-3 mr-1" />
+                                    Reintentar ahora
+                                </Button>
                             </div>
                         ) : location ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
