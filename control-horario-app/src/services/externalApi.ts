@@ -6,7 +6,7 @@ import { LocationInfo } from '../types';
  */
 export const fetchLocationInfo = async (): Promise<LocationInfo> => {
     try {
-        const response = await fetch('https://ipapi.co/json/');
+        const response = await fetch('/api/location');
 
         if (!response.ok) {
             throw new Error(`Error en la respuesta de la API: ${response.statusText}`);
