@@ -1,11 +1,15 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Play, Pause, Square, LogOut, Clock, Calendar } from 'lucide-react';
+import { Play, Pause, Square, LogOut, Clock, Calendar, RefreshCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+
+import { fetchLocationInfo } from '@/services/externalApi';
+import { LocationInfo } from '@/types';
+import { MapPin, Globe, Server, Hash, Minimize2 } from 'lucide-react';
 
 type SessionStatus = 'active' | 'paused' | 'completed';
 
@@ -19,11 +23,17 @@ interface SessionData {
 export default function DashboardClient() {
     const supabase = createClient();
     const router = useRouter();
+    const isLocationFetching = useRef(false);
 
     const [loading, setLoading] = useState(true);
     const [session, setSession] = useState<SessionData | null>(null);
     const [profile, setProfile] = useState<{ full_name: string | null; company_id: string | null } | null>(null);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+    // Location state
+    const [location, setLocation] = useState<LocationInfo | null>(null);
+    const [locationLoading, setLocationLoading] = useState(false);
+    const [locationError, setLocationError] = useState<string | null>(null);
 
     // Fetch initial data
     const fetchData = useCallback(async () => {
@@ -68,9 +78,35 @@ export default function DashboardClient() {
         }
     }, [supabase, router]);
 
+    // Fetch location info
+    const getLocation = useCallback(async (force = false) => {
+        if (isLocationFetching.current && !force) return;
+
+        try {
+            isLocationFetching.current = true;
+            setLocationLoading(true);
+            setLocationError(null);
+            const data = await fetchLocationInfo();
+            setLocation(data);
+        } catch (err) {
+            console.error('Location fetch error:', err);
+            const message = err instanceof Error ? err.message : 'Error desconocido al cargar ubicación';
+
+            if (message.includes('429')) {
+                setLocationError('Límite de peticiones alcanzado. Por favor, intenta más tarde.');
+            } else {
+                setLocationError('No se pudo obtener la ubicación. Verifica tu conexión.');
+            }
+        } finally {
+            setLocationLoading(false);
+            isLocationFetching.current = false;
+        }
+    }, []);
+
     useEffect(() => {
         fetchData();
-    }, [fetchData]);
+        getLocation();
+    }, [fetchData, getLocation]);
 
     // Timer logic
     useEffect(() => {
@@ -361,6 +397,80 @@ export default function DashboardClient() {
                         </div>
                     </Card>
                 </div>
+
+                {/* Location Card */}
+                <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 overflow-hidden" padding="none">
+                    <div className="bg-slate-50 dark:bg-slate-900/50 px-6 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-indigo-500" />
+                        <h3 className="font-semibold text-sm">Ubicación actual</h3>
+                    </div>
+                    <div className="p-6">
+                        {locationLoading ? (
+                            <div className="flex items-center justify-center py-4 text-slate-500 gap-2">
+                                <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                <span className="text-sm">Cargando ubicación...</span>
+                            </div>
+                        ) : locationError ? (
+                            <div className="flex flex-col items-center gap-3 py-4">
+                                <div className="text-red-500 text-sm bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-lg flex items-center gap-2">
+                                    <span className="flex-1">{locationError}</span>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => getLocation(true)}
+                                    className="text-xs text-slate-500 hover:text-indigo-500"
+                                >
+                                    <RefreshCcw className="w-3 h-3 mr-1" />
+                                    Reintentar ahora
+                                </Button>
+                            </div>
+                        ) : location ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-3">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
+                                            <Globe className="w-4 h-4 text-slate-500" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Ciudad / Región</p>
+                                            <p className="text-sm font-medium">{location.city}, {location.region}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
+                                            <Server className="w-4 h-4 text-slate-500" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">País</p>
+                                            <p className="text-sm font-medium">{location.country_name}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
+                                            <Hash className="w-4 h-4 text-slate-500" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Dirección IP</p>
+                                            <p className="text-sm font-medium">{location.ip}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
+                                            <Minimize2 className="w-4 h-4 text-slate-500" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Zona Horaria</p>
+                                            <p className="text-sm font-medium">{location.timezone}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : null}
+                    </div>
+                </Card>
             </main>
         </div>
     );
