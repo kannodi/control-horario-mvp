@@ -38,3 +38,11 @@ export interface WorkSession {
     status: SessionStatus;
     breaks: Break[];
 }
+
+export interface LocationInfo {
+    city: string;
+    region: string;
+    country_name: string;
+    ip: string;
+    timezone: string;
+}
