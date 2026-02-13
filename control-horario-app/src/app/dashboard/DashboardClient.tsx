@@ -7,6 +7,15 @@ import { Card } from '@/components/ui/Card';
 import { Play, Pause, Square, LogOut, Clock, Calendar } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+<<<<<<< Updated upstream
+=======
+import { fetchLocationInfo } from '@/services/externalApi';
+import { LocationInfo } from '@/types';
+// import { MapPin, Globe, Server, Hash, Minimize2 } from 'lucide-react'; // Moved to LocationCard
+import { LocationCard } from '@/features/dashboard/LocationCard';
+import { StatusCard, StartTimeCard, WorkHoursCard } from '@/features/dashboard/DashboardCards';
+
+>>>>>>> Stashed changes
 type SessionStatus = 'active' | 'paused' | 'completed';
 
 interface SessionData {
@@ -14,6 +23,7 @@ interface SessionData {
     status: SessionStatus;
     check_in: string;
     breaks: any[];
+    total_minutes?: number;
 }
 
 export default function DashboardClient() {
@@ -45,14 +55,15 @@ export default function DashboardClient() {
 
             setProfile(profileData);
 
-            // Get today's active/paused session
+            // Get today's latest session (active, paused, or completed)
             const today = new Date().toISOString().split('T')[0];
             const { data: sessionData } = await supabase
                 .from('work_sessions')
                 .select('*, breaks(*)')
                 .eq('user_id', user.id)
                 .eq('date', today)
-                .neq('status', 'completed') // Only active or paused
+                .order('created_at', { ascending: false })
+                .limit(1)
                 .maybeSingle();
 
             if (sessionData) {
@@ -228,7 +239,8 @@ export default function DashboardClient() {
                 return acc;
             }, 0) || 0;
 
-            const totalMinutes = Math.floor((end - start - totalBreaksMs) / 60000);
+            const totalSeconds = Math.floor((end - start - totalBreaksMs) / 1000);
+            const totalMinutes = Math.floor(totalSeconds / 60);
 
             if (session.status === 'paused') {
                 await supabase
@@ -238,17 +250,20 @@ export default function DashboardClient() {
                     .is('break_end', null);
             }
 
-            const { error } = await supabase
+            const { data: updatedSession, error } = await supabase
                 .from('work_sessions')
                 .update({
                     check_out: now.toISOString(),
                     status: 'completed' as const,
-                    total_minutes: totalMinutes
+                    total_minutes: totalMinutes,
+                    accumulated_seconds: totalSeconds
                 })
-                .eq('id', session.id);
+                .eq('id', session.id)
+                .select('*, breaks(*)')
+                .single();
 
             if (error) throw error;
-            setSession(null);
+            setSession(updatedSession);
             setElapsedSeconds(0);
         } catch (error) {
             console.error('Error ending day:', error);
@@ -272,7 +287,7 @@ export default function DashboardClient() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50 p-6">
+        <div className="min-h-50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50 p-6 rounded-2xl">
             {/* Header */}
             <header className="flex justify-between items-center mb-10 max-w-5xl mx-auto">
                 <div>
@@ -288,78 +303,88 @@ export default function DashboardClient() {
                 </Button>
             </header>
 
-            <main className="max-w-xl mx-auto space-y-8">
-                {/* Main Timer Card */}
-                <Card className="text-center bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700" padding="lg">
-                    <div className="mb-6">
-                        <h2 className="text-slate-500 dark:text-slate-400 uppercase text-xs font-bold tracking-wider mb-2">
-                            {session?.status === 'active' ? 'Jornada en Curso' :
-                                session?.status === 'paused' ? 'En Pausa' : 'Sin Jornada Activa'}
-                        </h2>
-                        <div className={`text-6xl font-mono font-bold tabular-nums tracking-tight transition-all duration-500
-                    ${session?.status === 'active'
-                                ? 'text-indigo-600 dark:text-indigo-400 dark:drop-shadow-[0_0_15px_rgba(129,140,248,0.5)]'
-                                : session?.status === 'paused'
-                                    ? 'text-amber-500 dark:text-amber-400'
-                                    : 'text-slate-400 dark:text-slate-600'}
-                `}>
-                            {formatTime(elapsedSeconds)}
-                        </div>
+            <main className="max-w-4xl mx-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left Column: Timer + Location */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Main Timer Card */}
+                        <Card className="text-center bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700" padding="lg">
+                            <div className="mb-6">
+                                <h2 className="text-slate-500 dark:text-slate-400 uppercase text-xs font-bold tracking-wider mb-2">
+                                    {session?.status === 'active' ? 'Jornada en Curso' :
+                                        session?.status === 'paused' ? 'En Pausa' : 'Sin Jornada Activa'}
+                                </h2>
+                                <div className={`text-6xl font-mono font-bold tabular-nums tracking-tight transition-all duration-500
+                            ${session?.status === 'active'
+                                        ? 'text-indigo-600 dark:text-indigo-400 dark:drop-shadow-[0_0_15px_rgba(129,140,248,0.5)]'
+                                        : session?.status === 'paused'
+                                            ? 'text-amber-500 dark:text-amber-400'
+                                            : 'text-slate-400 dark:text-slate-600'}
+                        `}>
+                                    {formatTime(elapsedSeconds)}
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 justify-center">
+                                {(!session || session.status === 'completed') && (
+                                    <Button size="lg" onClick={handleStartDay} className="w-full max-w-xs shadow-indigo-900/20 shadow-xl dark:shadow-indigo-500/20 transition-all hover:scale-105">
+                                        <Play className="w-5 h-5 mr-2 fill-current" />
+                                        Iniciar Jornada
+                                    </Button>
+                                )}
+
+                                {session?.status === 'active' && (
+                                    <>
+                                        <Button variant="secondary" onClick={handlePause} className="shadow-lg hover:shadow-xl transition-all dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">
+                                            <Pause className="w-5 h-5 mr-2 fill-current" />
+                                            Pausar
+                                        </Button>
+                                        <Button variant="danger" onClick={handleEndDay} className="shadow-lg hover:shadow-xl transition-all">
+                                            <Square className="w-5 h-5 mr-2 fill-current" />
+                                            Terminar
+                                        </Button>
+                                    </>
+                                )}
+
+                                {session?.status === 'paused' && (
+                                    <>
+                                        <Button variant="primary" onClick={handleResume} className="bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20 transition-all">
+                                            <Play className="w-5 h-5 mr-2 fill-current" />
+                                            Reanudar
+                                        </Button>
+                                        <Button variant="danger" onClick={handleEndDay} className="shadow-lg hover:shadow-xl transition-all">
+                                            <Square className="w-5 h-5 mr-2 fill-current" />
+                                            Terminar
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        </Card>
+
+                        {/* Location Card */}
+                        <LocationCard
+                            location={location}
+                            loading={locationLoading}
+                            error={locationError}
+                            onRetry={() => getLocation(true)}
+                        />
                     </div>
 
-                    <div className="flex gap-4 justify-center">
-                        {!session && (
-                            <Button size="lg" onClick={handleStartDay} className="w-full max-w-xs shadow-indigo-900/20 shadow-xl dark:shadow-indigo-500/20 transition-all hover:scale-105">
-                                <Play className="w-5 h-5 mr-2 fill-current" />
-                                Iniciar Jornada
-                            </Button>
-                        )}
-
-                        {session?.status === 'active' && (
-                            <>
-                                <Button variant="secondary" onClick={handlePause} className="shadow-lg hover:shadow-xl transition-all dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">
-                                    <Pause className="w-5 h-5 mr-2 fill-current" />
-                                    Pausar
-                                </Button>
-                                <Button variant="danger" onClick={handleEndDay} className="shadow-lg hover:shadow-xl transition-all">
-                                    <Square className="w-5 h-5 mr-2 fill-current" />
-                                    Terminar
-                                </Button>
-                            </>
-                        )}
-
-                        {session?.status === 'paused' && (
-                            <>
-                                <Button variant="primary" onClick={handleResume} className="bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20 transition-all">
-                                    <Play className="w-5 h-5 mr-2 fill-current" />
-                                    Reanudar
-                                </Button>
-                                <Button variant="danger" onClick={handleEndDay} className="shadow-lg hover:shadow-xl transition-all">
-                                    <Square className="w-5 h-5 mr-2 fill-current" />
-                                    Terminar
-                                </Button>
-                            </>
-                        )}
-                    </div>
-                </Card>
-
-                {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                    <Card padding="md" className="flex flex-col items-center justify-center border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow rounded-xl">
-                        <span className="text-slate-500 dark:text-slate-400 text-sm mb-1">Inicio</span>
-                        <span className="text-xl font-mono font-medium text-slate-900 dark:text-white">
-                            {session?.check_in ? new Date(session.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
-                        </span>
-                    </Card>
-                    <Card padding="md" className="flex flex-col items-center justify-center border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-shadow rounded-xl">
-                        <span className="text-slate-500 dark:text-slate-400 text-sm mb-1">Estado</span>
-                        <div className={`px-3 py-1 rounded-full text-sm font-medium ${session?.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                            session?.status === 'paused' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                                'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
-                            }`}>
-                            {session?.status === 'active' ? 'Trabajando' : session?.status === 'paused' ? 'En Pausa' : 'Inactivo'}
+                    {/* Right Column: Status + Start Time + Work Hours */}
+                    <div className="space-y-6">
+                        <div className="h-32">
+                            <StatusCard status={session?.status} />
                         </div>
-                    </Card>
+                        <div className="h-32">
+                            <StartTimeCard checkInTime={session?.check_in} />
+                        </div>
+                        <div className="h-32">
+                            <WorkHoursCard
+                                status={session?.status}
+                                totalMinutes={session?.total_minutes || 0}
+                            />
+                        </div>
+                    </div>
                 </div>
             </main>
         </div>
