@@ -136,7 +136,7 @@ export function Timer({ initialSession, onSessionChange }: TimerProps) {
 
     return (
         <div className="w-full">
-            <div className="flex flex-col items-center justify-center py-8">
+            <div className="flex flex-col items-center justify-center py-8 rounded-xl">
                 <div className="text-6xl font-black tracking-tighter tabular-nums mb-8 flex items-baseline gap-1">
                     <span className={parseInt(time.h) > 0 ? "text-blue-600" : "text-slate-400 dark:text-slate-500"}>{time.h}</span>
                     <span className="text-slate-300 dark:text-slate-600 mx-1">:</span>

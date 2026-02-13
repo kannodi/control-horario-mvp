@@ -62,11 +62,13 @@ export function HistoryTable({ sessions }: HistoryTableProps) {
                                 }
                             }
 
-                            // Calculate total hours text
-                            const hours = Math.floor(session.total_minutes / 60);
-                            const minutes = session.total_minutes % 60;
-                            const totalTimeText = session.total_minutes > 0
-                                ? `${hours}h ${minutes}m`
+                            // Calculate total hours text with seconds
+                            const totalSeconds = session.accumulated_seconds || 0;
+                            const hours = Math.floor(totalSeconds / 3600);
+                            const minutes = Math.floor((totalSeconds % 3600) / 60);
+                            const seconds = totalSeconds % 60;
+                            const totalTimeText = totalSeconds > 0
+                                ? `${hours}h ${minutes}m ${seconds}s`
                                 : '--';
 
                             return (
