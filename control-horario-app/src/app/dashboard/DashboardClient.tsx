@@ -176,16 +176,18 @@ export default function DashboardClient() {
         .from('work_sessions')
         .insert({
           user_id: user.id,
-          company_id: profile?.company_id || '', // Required by DB
+          company_id: profile?.company_id || 'comp_default', // Use default if profile not loaded
           date: new Date().toISOString().split('T')[0],
           check_in: new Date().toISOString(),
           status: 'active',
-          breaks: [],
         })
         .select('*, breaks(*)')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase insert error details:', error);
+        throw error;
+      }
       setSession(data);
       getLocation(true);
     } catch (error) {
@@ -197,20 +199,33 @@ export default function DashboardClient() {
   const handlePauseSession = async () => {
     if (!session) return;
     try {
-      const newBreak = { break_start: new Date().toISOString() };
-      const updatedBreaks = [...(session.breaks || []), newBreak];
-
-      const { data, error } = await supabase
+      // 1. Update session status
+      const { error: statusError } = await supabase
         .from('work_sessions')
-        .update({
-          status: 'paused',
-          breaks: updatedBreaks,
-        })
-        .eq('id', session.id)
+        .update({ status: 'paused' })
+        .eq('id', session.id);
+
+      if (statusError) throw statusError;
+
+      // 2. Insert new break record
+      const { error: breakError } = await supabase
+        .from('breaks')
+        .insert({
+          work_session_id: session.id,
+          break_start: new Date().toISOString(),
+        });
+
+      if (breakError) throw breakError;
+
+      // 3. Refresh session data (including breaks)
+      const { data, error: refreshError } = await supabase
+        .from('work_sessions')
         .select('*, breaks(*)')
+        .eq('id', session.id)
         .single();
 
-      if (error) throw error;
+      if (refreshError) throw refreshError;
+      setSession(data);
       setSession(data);
     } catch (error) {
       console.error('Error pausing session:', error);
@@ -224,26 +239,29 @@ export default function DashboardClient() {
       const breaks = session.breaks || [];
       const lastBreakIndex = breaks.length - 1;
 
-      if (lastBreakIndex >= 0) {
-        const updatedBreaks = [...breaks];
-        updatedBreaks[lastBreakIndex] = {
-          ...updatedBreaks[lastBreakIndex],
-          break_end: new Date().toISOString(),
-        };
+      // 1. Find the active break and update its end time
+      // Search for a break with no break_end
+      const activeBreak = session.breaks.find((b: any) => !b.break_end);
 
-        const { data, error } = await supabase
-          .from('work_sessions')
-          .update({
-            status: 'active',
-            breaks: updatedBreaks,
-          })
-          .eq('id', session.id)
-          .select('*, breaks(*)')
-          .single();
+      if (activeBreak) {
+        const { error: breakError } = await supabase
+          .from('breaks')
+          .update({ break_end: new Date().toISOString() })
+          .eq('id', activeBreak.id);
 
-        if (error) throw error;
-        setSession(data);
+        if (breakError) throw breakError;
       }
+
+      // 2. Update session status back to active
+      const { data, error } = await supabase
+        .from('work_sessions')
+        .update({ status: 'active' })
+        .eq('id', session.id)
+        .select('*, breaks(*)')
+        .single();
+
+      if (error) throw error;
+      setSession(data);
     } catch (error) {
       console.error('Error resuming session:', error);
       alert('Error al reanudar sesión.');
